@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Globalization;
@@ -6,7 +6,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Web.Hosting;
+
 
 namespace eShopModernizedWebForms.Models.Infrastructure
 {
@@ -24,7 +24,7 @@ namespace eShopModernizedWebForms.Models.Infrastructure
         public CatalogDBInitializer(CatalogItemHiLoGenerator indexGenerator)
         {
             this.indexGenerator = indexGenerator;
-            useCustomizationData = CatalogConfiguration.UseCustomizationData;
+            // useCustomizationData is set via constructor parameter
         }
 
         protected override void Seed(CatalogDBContext context)
@@ -91,7 +91,7 @@ namespace eShopModernizedWebForms.Models.Infrastructure
 
         private IEnumerable<CatalogType> GetCatalogTypesFromFile()
         {
-            var contentRootPath = HostingEnvironment.ApplicationPhysicalPath;
+            var contentRootPath = Directory.GetCurrentDirectory();
             string csvFileCatalogTypes = Path.Combine(contentRootPath, "Setup", "CatalogTypes.csv");
 
             if (!File.Exists(csvFileCatalogTypes))
@@ -127,7 +127,7 @@ namespace eShopModernizedWebForms.Models.Infrastructure
 
         static IEnumerable<CatalogBrand> GetCatalogBrandsFromFile()
         {
-            var contentRootPath = HostingEnvironment.ApplicationPhysicalPath;
+            var contentRootPath = Directory.GetCurrentDirectory();
             string csvFileCatalogBrands = Path.Combine(contentRootPath, "Setup", "CatalogBrands.csv");
 
             if (!File.Exists(csvFileCatalogBrands))
@@ -163,7 +163,7 @@ namespace eShopModernizedWebForms.Models.Infrastructure
 
         static IEnumerable<CatalogItem> GetCatalogItemsFromFile(CatalogDBContext context)
         {
-            var contentRootPath = HostingEnvironment.ApplicationPhysicalPath;
+            var contentRootPath = Directory.GetCurrentDirectory();
             string csvFileCatalogItems = Path.Combine(contentRootPath, "Setup", "CatalogItems.csv");
 
             if (!File.Exists(csvFileCatalogItems))
@@ -339,7 +339,7 @@ namespace eShopModernizedWebForms.Models.Infrastructure
             {
                 return;
             }
-            var contentRootPath = HostingEnvironment.ApplicationPhysicalPath;
+            var contentRootPath = Directory.GetCurrentDirectory();
             DirectoryInfo picturePath = new DirectoryInfo(Path.Combine(contentRootPath, "Pics"));
             foreach (FileInfo file in picturePath.GetFiles())
             {

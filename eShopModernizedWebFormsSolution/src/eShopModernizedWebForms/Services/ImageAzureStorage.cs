@@ -1,27 +1,31 @@
-﻿using eShopModernizedWebForms.Models;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Blob;
+using eShopModernizedWebForms.Models;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Web;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Hosting;
+
 
 namespace eShopModernizedWebForms.Services
 {
     public class ImageAzureStorage : IImageService
     {
 
-        private readonly CloudStorageAccount _storageAccount;
+        private readonly BlobServiceClient _blobServiceClient;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
-        public ImageAzureStorage()
+        public ImageAzureStorage(IWebHostEnvironment webHostEnvironment)
         {
-            _storageAccount = CloudStorageAccount.Parse(CatalogConfiguration.StorageConnectionString);
+            _blobServiceClient = new BlobServiceClient("YourAzureStorageConnectionString");
+            _webHostEnvironment = webHostEnvironment;
         }
 
         public string BaseUrl()
         {
-            return _storageAccount.BlobStorageUri.PrimaryUri.ToString();
+            return _blobServiceClient.Uri.ToString();
         }
 
         public string BuildUrlImage(CatalogItem item)
@@ -29,7 +33,7 @@ namespace eShopModernizedWebForms.Services
             if (string.IsNullOrEmpty(item.PictureFileName))
                 return UrlDefaultImage();
 
-            return _storageAccount.BlobStorageUri.PrimaryUri + "pics/" + item.Id + "/" + item.PictureFileName;
+            return _blobServiceClient.Uri + "pics/" + item.Id + "/" + item.PictureFileName;
         }
 
         public void Dispose()
@@ -38,80 +42,84 @@ namespace eShopModernizedWebForms.Services
 
         public void InitializeCatalogImages()
         {
-            CloudBlobClient blobClient = _storageAccount.CreateCloudBlobClient();
-            CloudBlobContainer container = blobClient.GetContainerReference("pics");
+            BlobContainerClient containerClient = _blobServiceClient.GetBlobContainerClient("pics");
 
-            container.CreateIfNotExists();
+            containerClient.CreateIfNotExists(PublicAccessType.Blob);
 
-            BlobContainerPermissions permissions = container.GetPermissions();
-            permissions.PublicAccess = BlobContainerPublicAccessType.Blob;
-            container.SetPermissions(permissions);
+            var existingBlobs = containerClient.GetBlobs();
+            Parallel.ForEach(existingBlobs, blobItem =>
+            {
+                containerClient.GetBlobClient(blobItem.Name).Delete();
+            });
 
-
-            Parallel.ForEach(container.ListBlobs().Where(x => x is CloudBlob), x => ((CloudBlob)x).Delete());
-            var webRoot = HttpContext.Current.Server.MapPath("~/Pics");
+            var webRoot = Path.Combine(_webHostEnvironment.WebRootPath, "Pics");
 
             for (int i = 1; i <= 12; i++)
             {
                 var path = Path.Combine(webRoot, i + ".png");
                 var blobName = i + "/" + i + ".png";
-                UpLoadImageFromFile(container, blobName, path, "image/png");
+                UpLoadImageFromFile(containerClient, blobName, path, "image/png");
 
             }
             var defaultImagePath = Path.Combine(webRoot, "default.png");
-            UpLoadImageFromFile(container, "temp/default.png", defaultImagePath, "image/png");
+            UpLoadImageFromFile(containerClient, "temp/default.png", defaultImagePath, "image/png");
         }
 
         public void UpdateImage(CatalogItem item)
         {
-            CloudBlobClient blobClient = _storageAccount.CreateCloudBlobClient();
-            CloudBlobContainer container = blobClient.GetContainerReference("pics");
+            BlobContainerClient containerClient = _blobServiceClient.GetBlobContainerClient("pics");
 
             var folder = item.TempImageName.Replace("/pics/", string.Empty);
 
-            CloudBlockBlob tempBlob = container.GetBlockBlobReference(folder);
+            BlobClient tempBlob = containerClient.GetBlobClient(folder);
 
-            var blockBlobs = container.ListBlobs(prefix: item.Id + "/").OfType<CloudBlockBlob>();
-            foreach (var blockBlob in blockBlobs)
+            var existingBlobs = containerClient.GetBlobs(prefix: item.Id + "/");
+            foreach (var blobItem in existingBlobs)
             {
-                blockBlob.Delete();
+                containerClient.GetBlobClient(blobItem.Name).Delete();
             }
 
             var fileName = Path.GetFileName(item.TempImageName);
-            CloudBlockBlob imageBlob = container.GetBlockBlobReference(item.Id + "/" + fileName);
+            BlobClient imageBlob = containerClient.GetBlobClient(item.Id + "/" + fileName);
 
-            imageBlob.StartCopy(tempBlob);
+            imageBlob.StartCopyFromUri(tempBlob.Uri);
             tempBlob.Delete();
         }
 
-        public string UploadTempImage(HttpPostedFile file, int? catalogItemId)
+        public string UploadTempImage(IFormFile file, int? catalogItemId)
         {
             string path = catalogItemId.HasValue ? catalogItemId + "/temp/" : "temp/" + Guid.NewGuid().ToString() + "/";
 
-            CloudBlobClient blobClient = _storageAccount.CreateCloudBlobClient();
-            CloudBlobContainer container = blobClient.GetContainerReference("pics");
-            CloudBlockBlob blockBlob = container.GetBlockBlobReference(path + file.FileName.ToLower());
+            BlobContainerClient containerClient = _blobServiceClient.GetBlobContainerClient("pics");
+            BlobClient blobClient = containerClient.GetBlobClient(path + file.FileName.ToLower());
 
-            blockBlob.Properties.ContentType = file.ContentType;
-            file.InputStream.Seek(0, SeekOrigin.Begin);
-            blockBlob.UploadFromStream(file.InputStream);
+            var uploadOptions = new BlobUploadOptions
+            {
+                HttpHeaders = new BlobHttpHeaders { ContentType = file.ContentType }
+            };
+            var stream = file.OpenReadStream();
+            stream.Seek(0, SeekOrigin.Begin);
+            blobClient.Upload(stream, uploadOptions);
 
-            return blockBlob.Uri.ToString();
+            return blobClient.Uri.ToString();
         }
 
         public string UrlDefaultImage()
         {
-            return _storageAccount.BlobStorageUri.PrimaryUri + "pics/temp/default.png";
+            return _blobServiceClient.Uri + "pics/temp/default.png";
         }
 
-        private void UpLoadImageFromFile(CloudBlobContainer container, string blobName, string filePath, string contentType)
+        private void UpLoadImageFromFile(BlobContainerClient containerClient, string blobName, string filePath, string contentType)
         {
             var fileStream = File.OpenRead(filePath);
             fileStream.Seek(0, SeekOrigin.Begin);
 
-            CloudBlockBlob blockBlob = container.GetBlockBlobReference(blobName);
-            blockBlob.Properties.ContentType = contentType;
-            blockBlob.UploadFromStream(fileStream);
+            BlobClient blobClient = containerClient.GetBlobClient(blobName);
+            var uploadOptions = new BlobUploadOptions
+            {
+                HttpHeaders = new BlobHttpHeaders { ContentType = contentType }
+            };
+            blobClient.Upload(fileStream, uploadOptions);
         }
 
 

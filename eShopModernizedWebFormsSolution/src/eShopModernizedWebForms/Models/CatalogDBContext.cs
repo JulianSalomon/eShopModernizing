@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity;
 using System.Data.Entity.ModelConfiguration;
 
@@ -6,10 +6,9 @@ namespace eShopModernizedWebForms.Models
 {
     public class CatalogDBContext : DbContext
     {
-        public CatalogDBContext(ISqlConnectionFactory provider)
-            : base(provider.CreateConnection(), true)
-            {
-            }
+        public CatalogDBContext()
+ {
+        }
 
         public DbSet<CatalogItem> CatalogItems { get; set; }
 

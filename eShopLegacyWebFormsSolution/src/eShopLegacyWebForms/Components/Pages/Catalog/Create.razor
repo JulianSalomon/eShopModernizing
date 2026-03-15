@@ -1,0 +1,264 @@
+@namespace eShopLegacyWebForms.Components.Pages.Catalog.Create
+
+@page "/Catalog/Create"
+@rendermode InteractiveServer
+
+@using eShopLegacyWebForms.Models
+@using eShopLegacyWebForms.Services
+@using Microsoft.AspNetCore.Components
+@using Microsoft.Extensions.Logging
+
+@inject ICatalogService CatalogService
+@inject NavigationManager NavigationManager
+@inject ILogger<Create> Logger
+
+<h2 class="esh-body-title">Create</h2>
+
+<div>
+    <EditForm Model="@catalogItem" OnValidSubmit="Create_Click" FormName="CreateCatalogItemForm">
+        <DataAnnotationsValidator />
+        <div class="form-horizontal">
+            <div class="form-group">
+                <label class="control-label col-md-2">Name</label>
+                <div class="col-md-3">
+                    <InputText @bind-Value="catalogItem.Name" class="form-control" />
+                    <ValidationMessage For="@(() => catalogItem.Name)" class="field-validation-valid text-danger" />
+                    @if (nameRequired)
+                    {
+                        <span class="field-validation-valid text-danger">The Name field is required.</span>
+                    }
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label col-md-2">Description</label>
+                <div class="col-md-3">
+                    <InputText @bind-Value="catalogItem.Description" class="form-control" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label col-md-2">Brand</label>
+                <div class="col-md-3">
+                    <select value="@selectedBrandId" @onchange="BrandSelectionChanged" class="form-control">
+                        @if (brands != null)
+                        {
+                            @foreach (var brand in brands)
+                            {
+                                <option value="@brand.Id">@brand.Brand</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label col-md-2">Type</label>
+                <div class="col-md-3">
+                    <select value="@selectedTypeId" @onchange="TypeSelectionChanged" class="form-control">
+                        @if (types != null)
+                        {
+                            @foreach (var type in types)
+                            {
+                                <option value="@type.Id">@type.Type</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label col-md-2">Price</label>
+                <div class="col-md-3">
+                    <input type="text" class="form-control" value="@priceText" @onchange="e => priceText = e.Value?.ToString()" />
+                    @if (priceError)
+                    {
+                        <span class="text-danger">The Price must be a positive number with maximum two decimals between 0 and 1 million.</span>
+                    }
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label col-md-2">Picture name</label>
+                <div class="col-md-4 esh-form-information">
+                    Uploading images not allowed for this version.
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label col-md-2">Stock</label>
+                <div class="col-md-3">
+                    <input type="text" class="form-control" value="@stockText" @onchange="e => stockText = e.Value?.ToString()" />
+                    @if (stockError)
+                    {
+                        <span class="text-danger">The field Stock must be between 0 and 10 million.</span>
+                    }
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label col-md-2">Restock</label>
+                <div class="col-md-3">
+                    <input type="text" class="form-control" value="@restockText" @onchange="e => restockText = e.Value?.ToString()" />
+                    @if (restockError)
+                    {
+                        <span class="text-danger">The field Restock must be between 0 and 10 million.</span>
+                    }
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label col-md-2">Max stock</label>
+                <div class="col-md-3">
+                    <input type="text" class="form-control" value="@maxStockText" @onchange="e => maxStockText = e.Value?.ToString()" />
+                    @if (maxStockError)
+                    {
+                        <span class="text-danger">The field Max stock must be between 0 and 10 million.</span>
+                    }
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="col-md-offset-2 col-md-3 text-right esh-button-actions">
+                    <NavLink href="/" class="btn esh-button esh-button-secondary">[ Cancel ]</NavLink>
+                    <button type="submit" class="btn esh-button esh-button-primary">[ Create ]</button>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    private CatalogItem catalogItem = new CatalogItem();
+    private IEnumerable<CatalogBrand> brands;
+    private IEnumerable<CatalogType> types;
+
+    private int selectedBrandId;
+    private int selectedTypeId;
+
+    private string priceText = "0.00";
+    private string stockText = "0";
+    private string restockText = "0";
+    private string maxStockText = "0";
+
+    private bool nameRequired = false;
+    private bool priceError = false;
+    private bool stockError = false;
+    private bool restockError = false;
+    private bool maxStockError = false;
+
+    protected override void OnInitialized()
+    {
+        Logger.LogInformation("Now loading... /Catalog/Create.aspx");
+
+        brands = CatalogService.GetCatalogBrands();
+        types = CatalogService.GetCatalogTypes();
+
+        if (brands != null)
+        {
+            var firstBrand = System.Linq.Enumerable.FirstOrDefault(brands);
+            if (firstBrand != null)
+                selectedBrandId = firstBrand.Id;
+        }
+
+        if (types != null)
+        {
+            var firstType = System.Linq.Enumerable.FirstOrDefault(types);
+            if (firstType != null)
+                selectedTypeId = firstType.Id;
+        }
+    }
+
+    private void BrandSelectionChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int brandId))
+        {
+            selectedBrandId = brandId;
+        }
+    }
+
+    private void TypeSelectionChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int typeId))
+        {
+            selectedTypeId = typeId;
+        }
+    }
+
+    private bool ValidateForm()
+    {
+        bool isValid = true;
+
+        nameRequired = string.IsNullOrWhiteSpace(catalogItem.Name);
+        if (nameRequired) isValid = false;
+
+        if (!decimal.TryParse(priceText, out decimal price) || price < 0 || price > 1000000)
+        {
+            priceError = true;
+            isValid = false;
+        }
+        else
+        {
+            priceError = false;
+        }
+
+        if (!int.TryParse(stockText, out int stock) || stock < 0 || stock > 10000000)
+        {
+            stockError = true;
+            isValid = false;
+        }
+        else
+        {
+            stockError = false;
+        }
+
+        if (!int.TryParse(restockText, out int restock) || restock < 0 || restock > 10000000)
+        {
+            restockError = true;
+            isValid = false;
+        }
+        else
+        {
+            restockError = false;
+        }
+
+        if (!int.TryParse(maxStockText, out int maxStock) || maxStock < 0 || maxStock > 10000000)
+        {
+            maxStockError = true;
+            isValid = false;
+        }
+        else
+        {
+            maxStockError = false;
+        }
+
+        return isValid;
+    }
+
+    private void Create_Click()
+    {
+        if (ValidateForm())
+        {
+            decimal.TryParse(priceText, out decimal price);
+            int.TryParse(stockText, out int stock);
+            int.TryParse(restockText, out int restock);
+            int.TryParse(maxStockText, out int maxStock);
+
+            var newCatalogItem = new CatalogItem
+            {
+                Name = catalogItem.Name,
+                Description = catalogItem.Description,
+                CatalogBrandId = selectedBrandId,
+                CatalogTypeId = selectedTypeId,
+                Price = price,
+                AvailableStock = stock,
+                RestockThreshold = restock,
+                MaxStockThreshold = maxStock
+            };
+
+            CatalogService.CreateCatalogItem(newCatalogItem);
+
+            NavigationManager.NavigateTo("/");
+        }
+    }
+}

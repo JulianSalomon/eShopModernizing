@@ -1,7 +1,30 @@
-﻿using Autofac;
+using Autofac;
 using eShopModernizedWebForms.Models;
 using eShopModernizedWebForms.Models.Infrastructure;
 using eShopModernizedWebForms.Services;
+using Microsoft.Azure.Services.AppAuthentication;
+
+public interface ISqlConnectionFactory
+{
+    string GetConnectionString();
+}
+
+public class ManagedIdentitySqlConnectionFactory : ISqlConnectionFactory
+{
+    private readonly string _baseConnectionString;
+
+    public ManagedIdentitySqlConnectionFactory(string baseConnectionString = "")
+    {
+        _baseConnectionString = baseConnectionString;
+    }
+
+    public string GetConnectionString()
+    {
+        var tokenProvider = new AzureServiceTokenProvider();
+        var accessToken = tokenProvider.GetAccessTokenAsync("https://database.windows.net/").GetAwaiter().GetResult();
+        return _baseConnectionString;
+    }
+}
 
 namespace eShopModernizedWebForms.Modules
 {
@@ -63,7 +86,7 @@ namespace eShopModernizedWebForms.Modules
             }
             else
             {
-                builder.RegisterType<AppSettingsSqlConnectionFactory>()
+                builder.Register(c => "DefaultConnectionString")
                     .As<ISqlConnectionFactory>()
                     .SingleInstance();
             }

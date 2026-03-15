@@ -1,0 +1,184 @@
+@namespace eShopModernizedWebForms.Components.Pages.Default
+
+@page "/"
+@page "/Default"
+@page "/Default/{index:int}/{size:int}"
+@rendermode InteractiveServer
+
+@using eShopModernizedWebForms.Models
+@using eShopModernizedWebForms.Services
+@using eShopModernizedWebForms.ViewModel
+@using Microsoft.AspNetCore.Components
+@using Microsoft.Extensions.Logging
+
+@inject ICatalogService CatalogService
+@inject IImageService ImageService
+@inject NavigationManager NavigationManager
+@inject ILogger<Default> Logger
+
+<div class="esh-table">
+    <p class="esh-link-wrapper">
+        <NavLink href="/CreateProduct" class="btn esh-button esh-button-primary">
+            Create New
+        </NavLink>
+    </p>
+
+    @if (Model == null || !Model.Data.Any())
+    {
+        <table>
+            <tr>
+                <td>No data was returned.</td>
+            </tr>
+        </table>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr class="esh-table-header">
+                    <th></th>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Brand</th>
+                    <th>Type</th>
+                    <th>Price</th>
+                    <th>Picture name</th>
+                    <th>Stock</th>
+                    <th>Restock</th>
+                    <th>Max stock</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Data)
+                {
+                    <tr>
+                        <td>
+                            <image class="esh-thumbnail" src="@item.PictureUri" />
+                        </td>
+                        <td>
+                            <p>@item.Name</p>
+                        </td>
+                        <td>
+                            <p>@item.Description</p>
+                        </td>
+                        <td>
+                            <p>@item.CatalogBrand?.Brand</p>
+                        </td>
+                        <td>
+                            <p>@item.CatalogType?.Type</p>
+                        </td>
+                        <td>
+                            <p><span class="esh-price">@item.Price</span></p>
+                        </td>
+                        <td>
+                            <p>@item.PictureFileName</p>
+                        </td>
+                        <td>
+                            <p>@item.AvailableStock</p>
+                        </td>
+                        <td>
+                            <p>@item.RestockThreshold</p>
+                        </td>
+                        <td>
+                            <p>@item.MaxStockThreshold</p>
+                        </td>
+                        <td>
+                            <NavLink href="@($"/EditProduct/{item.Id}")" class="esh-table-link">
+                                Edit
+                            </NavLink>
+                            |
+                            <NavLink href="@($"/ProductDetails/{item.Id}")" class="esh-table-link">
+                                Details
+                            </NavLink>
+                            |
+                            <NavLink href="@($"/DeleteProduct/{item.Id}")" class="esh-table-link">
+                                Delete
+                            </NavLink>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@if (Model != null)
+{
+    <div class="esh-pager">
+        <div class="container">
+            <article class="esh-pager-wrapper row">
+                <nav>
+                    <NavLink href="@PaginationPreviousUrl" class="@PaginationPreviousCssClass">
+                        Previous
+                    </NavLink>
+
+                    <span class="esh-pager-item">
+                        Showing @Model.ItemsPerPage of @Model.TotalItems products - Page @(Model.ActualPage + 1) - @Model.TotalPages
+                    </span>
+
+                    <NavLink href="@PaginationNextUrl" class="@PaginationNextCssClass">
+                        Next
+                    </NavLink>
+                </nav>
+            </article>
+        </div>
+    </div>
+}
+
+@code {
+    public const int DefaultPageIndex = 0;
+    public const int DefaultPageSize = 10;
+
+    [Parameter]
+    public int Index { get; set; } = DefaultPageIndex;
+
+    [Parameter]
+    public int Size { get; set; } = DefaultPageSize;
+
+    protected PaginatedItemsViewModel<CatalogItem> Model { get; set; }
+
+    private string PaginationNextUrl { get; set; } = string.Empty;
+    private string PaginationNextCssClass { get; set; } = "esh-pager-item esh-pager-item--navigable";
+    private string PaginationPreviousUrl { get; set; } = string.Empty;
+    private string PaginationPreviousCssClass { get; set; } = "esh-pager-item esh-pager-item--navigable";
+
+    protected override void OnInitialized()
+    {
+        Logger.LogInformation("Now loading... /Default");
+
+        PaginatedItemsViewModel<CatalogItem> paginatedItems;
+
+        if (Index != DefaultPageIndex || Size != DefaultPageSize)
+        {
+            paginatedItems = CatalogService.GetCatalogItemsPaginated(Size, Index);
+        }
+        else
+        {
+            paginatedItems = CatalogService.GetCatalogItemsPaginated(DefaultPageSize, DefaultPageIndex);
+        }
+
+        ChangeUriPlaceholder(paginatedItems.Data);
+        Model = paginatedItems;
+        ConfigurePagination();
+    }
+
+    private void ConfigurePagination()
+    {
+        PaginationNextUrl = $"/Default/{Model.ActualPage + 1}/{Model.ItemsPerPage}";
+        var pagerNextExtraStyles = Model.ActualPage < Model.TotalPages - 1 ? "" : " esh-pager-item--hidden";
+        PaginationNextCssClass = "esh-pager-item esh-pager-item--navigable" + pagerNextExtraStyles;
+
+        PaginationPreviousUrl = $"/Default/{Model.ActualPage - 1}/{Model.ItemsPerPage}";
+        var pagerPreviousExtraStyles = Model.ActualPage > 0 ? "" : " esh-pager-item--hidden";
+        PaginationPreviousCssClass = "esh-pager-item esh-pager-item--navigable" + pagerPreviousExtraStyles;
+    }
+
+    private void ChangeUriPlaceholder(IEnumerable<CatalogItem> items)
+    {
+        foreach (var catalogItem in items)
+        {
+            catalogItem.PictureUri = ImageService.BuildUrlImage(catalogItem);
+        }
+    }
+}

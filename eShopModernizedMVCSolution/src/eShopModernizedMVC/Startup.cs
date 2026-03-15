@@ -1,23 +1,30 @@
-﻿using eShopModernizedMVC.Middleware;
-using Microsoft.Owin;
-using Owin;
+using eShopModernizedMVC.Middleware;
+using Microsoft.AspNetCore.Owin;
 
-[assembly: OwinStartup(typeof(eShopModernizedMVC.Startup))]
+using Microsoft.AspNetCore.Builder;
+
+
+
 
 namespace eShopModernizedMVC
 {
     public partial class Startup
     {
-        public void Configuration(IAppBuilder app)
+        public void Configuration(IApplicationBuilder app)
         {
-            if (CatalogConfiguration.UseAzureActiveDirectory)
+            if (false)
             {
                 ConfigureAuth(app);
             }
             else
             {
-                app.Use<AuthenticationMiddleware>();
+                app.UseMiddleware<AuthenticationMiddleware>();
             }
         }
+
+        private void ConfigureAuth(IApplicationBuilder app)
+        {
+            app.UseAuthentication();
+ }
     }
 }

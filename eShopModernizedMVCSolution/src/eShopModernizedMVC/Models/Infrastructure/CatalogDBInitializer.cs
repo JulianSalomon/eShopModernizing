@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Globalization;
@@ -19,12 +19,12 @@ namespace eShopModernizedMVC.Models.Infrastructure
         private const string CatalogTypeHiLoSequenceScript = @"Models\Infrastructure\dbo.catalog_type_hilo.Sequence.sql";
 
         private CatalogItemHiLoGenerator indexGenerator;
-        private bool useCustomizationData;
+        private bool useCustomizationData = false;
 
         public CatalogDBInitializer(CatalogItemHiLoGenerator indexGenerator)
         {
             this.indexGenerator = indexGenerator;
-            useCustomizationData = CatalogConfiguration.UseCustomizationData;
+
         }
 
         protected override void Seed(CatalogDBContext context)
@@ -37,7 +37,7 @@ namespace eShopModernizedMVC.Models.Infrastructure
             AddCatalogBrands(context);
             AddCatalogItems(context);
             AddCatalogItemPictures();
-            
+
         }
 
         private void AddCatalogTypes(CatalogDBContext context)
@@ -346,7 +346,7 @@ namespace eShopModernizedMVC.Models.Infrastructure
             {
                 file.Delete();
             }
-            
+
             string zipFileCatalogItemPictures = Path.Combine(contentRootPath, "Setup", "CatalogItems.zip");
             ZipFile.ExtractToDirectory(zipFileCatalogItemPictures, picturePath.ToString());
         }

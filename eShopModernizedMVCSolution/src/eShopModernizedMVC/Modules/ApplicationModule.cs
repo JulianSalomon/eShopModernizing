@@ -1,4 +1,4 @@
-﻿using Autofac;
+using Autofac;
 using eShopModernizedMVC.Models;
 using eShopModernizedMVC.Models.Infrastructure;
 using eShopModernizedMVC.Services;
@@ -55,18 +55,9 @@ namespace eShopModernizedMVC.Modules
             builder.RegisterType<CatalogItemHiLoGenerator>()
                 .SingleInstance();
 
-            if (this.useManagedIdentity)
-            {
-                builder.RegisterType<ManagedIdentitySqlConnectionFactory>()
-                    .As<ISqlConnectionFactory>()
-                    .SingleInstance();
-            }
-            else
-            {
-                builder.RegisterType<AppSettingsSqlConnectionFactory>()
-                    .As<ISqlConnectionFactory>()
-                    .SingleInstance();
-            }
+            // Managed identity support removed – the type ManagedIdentitySqlConnectionFactory is not available.
+            // Using AppSettingsSqlConnectionFactory unconditionally.
+
         }
     }
 }

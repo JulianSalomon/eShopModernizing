@@ -1,15 +1,16 @@
-﻿using Autofac;
-using Autofac.Integration.Web;
+using Autofac;
+
 using eShopModernizedWebForms.Services;
 using log4net;
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Linq;
-using System.Web;
-using System.Web.Script.Serialization;
-using System.Web.Script.Services;
-using System.Web.Services;
+
+
+using System.Text.Json;
+using Microsoft.AspNetCore.Http;
+
 
 namespace eShopModernizedWebForms.Catalog
 {
@@ -19,56 +20,66 @@ namespace eShopModernizedWebForms.Catalog
     //[WebService(Namespace = "http://tempuri.org/")]
     //[WebServiceBinding(ConformsTo = WsiProfiles.BasicProfile1_1)]
     //[System.ComponentModel.ToolboxItem(false)]
-    // To allow this Web Service to be called from script, using ASP.NET AJAX, uncomment the following line. 
-    [ScriptService]
-    public class PicUploader : WebService
+// To allow this Web Service to be called from script, using ASP.NET AJAX, uncomment the following line.
+
+    public class PicUploader
     {
         private static readonly ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         private static ImageFormat[] ValidFormats = new[] { ImageFormat.Jpeg, ImageFormat.Png, ImageFormat.Gif };
 
-        [WebMethod]
-        [ScriptMethod(ResponseFormat = ResponseFormat.Json)]
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IImageService _imageService;
+
+        public PicUploader(IHttpContextAccessor httpContextAccessor, IImageService imageService)
+        {
+            _httpContextAccessor = httpContextAccessor;
+            _imageService = imageService;
+        }
+
         public void UploadImage()
         {
-
             _log.Info($"Now Processing... /Catalog/PicUploader.asmx");
-            var cpa = (IContainerProviderAccessor)HttpContext.Current.ApplicationInstance;
-            var cp = cpa.ContainerProvider;
-            IImageService imageService = cp.RequestLifetime.Resolve<IImageService>();
 
-            HttpPostedFile image = System.Web.HttpContext.Current.Request.Files["HelpSectionImages"];
-            var itemId = System.Web.HttpContext.Current.Request.Form["itemId"];
+            var httpContext = _httpContextAccessor.HttpContext;
+
+            IFormFile image = httpContext.Request.Form.Files["HelpSectionImages"];
+            var itemId = httpContext.Request.Form["itemId"];
 
             if (!IsValidImage(image))
             {
-                Context.Response.StatusCode = 400;
-                Context.Response.StatusDescription = "image is not valid";
-                Context.Response.End();
+                httpContext.Response.StatusCode = 400;
                 return;
             }
 
             int.TryParse(itemId, out var catalogItemId);
-            var urlImageTemp = imageService.UploadTempImage(image, catalogItemId);
+            var urlImageTemp = _imageService.UploadTempImage(image, catalogItemId);
             var tempImage = new
             {
                 name = new Uri(urlImageTemp).PathAndQuery,
                 url = urlImageTemp
             };
-            var js = new JavaScriptSerializer();
-            Context.Response.Clear();
-            Context.Response.ContentType = "application/json";
-            Context.Response.Write(js.Serialize(tempImage));
+            var jsonResult = JsonSerializer.Serialize(tempImage);
+            httpContext.Response.ContentType = "application/json";
+            httpContext.Response.WriteAsync(jsonResult);
         }
 
-        private bool IsValidImage(HttpPostedFile file)
+        private bool IsValidImage(IFormFile file)
         {
             bool isValidImage = true;
             try
             {
-                using (var img = Image.FromStream(file.InputStream))
+using (var img = Image.FromStream(file.OpenReadStream()))
                 {
-                    isValidImage = ValidFormats.Contains(img.RawFormat);
+                    isValidImage = false;
+                    foreach (var format in ValidFormats)
+                    {
+                        if (img.RawFormat == format)
+                        {
+                            isValidImage = true;
+                            break;
+                        }
+                    }
                 }
             }
             catch (Exception)
