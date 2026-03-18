@@ -1,6 +1,8 @@
-﻿using eShopModernizedWebForms.Middleware;
-using Microsoft.Owin;
-using Owin;
+using eShopModernizedWebForms.Middleware;
+using Microsoft.AspNetCore.Owin;
+
+using Microsoft.AspNetCore.Builder;
+
 
 [assembly: OwinStartup(typeof(eShopModernizedWebForms.Startup))]
 
@@ -8,7 +10,7 @@ namespace eShopModernizedWebForms
 {
     public partial class Startup
     {
-        public void Configuration(IAppBuilder app)
+        public void Configuration(IApplicationBuilder app)
         {
             if (CatalogConfiguration.UseAzureActiveDirectory)
             {
@@ -16,7 +18,7 @@ namespace eShopModernizedWebForms
             }
             else
             {
-                app.Use<AuthenticationMiddleware>();
+                app.UseMiddleware<AuthenticationMiddleware>();
             }
         }
     }

@@ -1,12 +1,13 @@
-﻿using eShopModernizedMVC.Services;
+using eShopModernizedMVC.Services;
 using log4net;
 using System;
-using System.Drawing;
-using System.Drawing.Imaging;
+
 using System.Linq;
 using System.Net;
-using System.Web;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Http;
+
 
 namespace eShopModernizedMVC.Controllers
 {
@@ -14,12 +15,14 @@ namespace eShopModernizedMVC.Controllers
     {
         private static readonly ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        private static readonly ImageFormat[] ValidFormats = { ImageFormat.Jpeg, ImageFormat.Png, ImageFormat.Gif };
+        private static readonly string[] ValidFormats = { "image/jpeg", "image/png", "image/gif" };
         private readonly IImageService _imageService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public PicController(ICatalogService service, IImageService imageService)
+        public PicController(ICatalogService service, IImageService imageService, IHttpContextAccessor httpContextAccessor)
         {
             _imageService = imageService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         [HttpPost]
@@ -27,12 +30,12 @@ namespace eShopModernizedMVC.Controllers
         public ActionResult UploadImage()
         {
             _log.Info($"Now processing... /Pic/UploadImage");
-            HttpPostedFile image = System.Web.HttpContext.Current.Request.Files["HelpSectionImages"];
-            var itemId = System.Web.HttpContext.Current.Request.Form["itemId"];
+            var image = _httpContextAccessor.HttpContext.Request.Form.Files["HelpSectionImages"];
+            var itemId = _httpContextAccessor.HttpContext.Request.Form["itemId"];
 
             if (!IsValidImage(image))
             {
-                return new HttpStatusCodeResult(HttpStatusCode.BadRequest, "image is not valid");
+                return StatusCode((int)HttpStatusCode.BadRequest, "image is not valid");
             }
 
             int.TryParse(itemId, out var catalogItemId);
@@ -46,15 +49,12 @@ namespace eShopModernizedMVC.Controllers
             return Json(tempImage);
         }
 
-        private bool IsValidImage(HttpPostedFile file)
+        private bool IsValidImage(IFormFile file)
         {
             bool isValidImage = true;
             try
             {
-                using (var img = Image.FromStream(file.InputStream))
-                {
-                    isValidImage = ValidFormats.Contains(img.RawFormat);
-                }
+                isValidImage = file != null && ValidFormats.Contains(file.ContentType);
             }
             catch (Exception)
             {

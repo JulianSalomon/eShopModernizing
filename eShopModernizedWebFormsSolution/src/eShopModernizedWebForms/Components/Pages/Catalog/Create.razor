@@ -1,0 +1,282 @@
+@namespace eShopModernizedWebForms.Components.Pages.Catalog.Create
+
+@page "/Catalog/Create"
+@rendermode InteractiveServer
+@using eShopModernizedWebForms.Models
+@using eShopModernizedWebForms.Services
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using System.IO
+@attribute [Authorize]
+@inject ICatalogService CatalogService
+@inject IImageService ImageService
+@inject NavigationManager NavigationManager
+@inject ILogger<Create> Logger
+
+<h2 class="esh-body-title">Create</h2>
+<div class="container">
+    <div class="row">
+
+        <div class="col-md-4">
+            <div class="row">
+                <img class="esh-picture" src="@pictureUri" />
+            </div>
+
+            @if (true)
+            {
+                <div id="UploadButton" class="row">
+                    <div class="col-md-6">
+                        <label class="btn btn-default esh-button-upload">
+                            Upload image
+                            <input type="file" id="uploadEditorImage" accept="image/*" class="hidden" />
+                        </label>
+                        <input type="hidden" id="TempImageName" @bind="tempImageName" />
+                    </div>
+                    <div class="esh-loader col-md-3 hidden"></div>
+                    <div class="col-md-6">
+                        <span class="text-danger field-validation-error" id="img-validation-error"></span>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="col-md-8 form-horizontal">
+            <EditForm Model="@catalogItem" OnValidSubmit="Create_Click" FormName="CreateCatalogForm">
+                <DataAnnotationsValidator />
+
+                <div class="form-group">
+                    <label class="control-label col-md-2">Name</label>
+                    <div class="col-md-8">
+                        <InputText id="Name" @bind-Value="catalogItem.Name" class="form-control" />
+                        <ValidationMessage For="@(() => catalogItem.Name)" class="field-validation-valid text-danger" />
+                        @if (nameRequired)
+                        {
+                            <span class="field-validation-valid text-danger">The Name field is required.</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="control-label col-md-2">Description</label>
+                    <div class="col-md-8">
+                        <InputText id="Description" @bind-Value="catalogItem.Description" class="form-control" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="control-label col-md-2">Brand</label>
+                    <div class="col-md-8">
+                        <select value="@selectedBrandId" @onchange="BrandSelectionChanged" class="form-control">
+                            @if (brands != null)
+                            {
+                                @foreach (var brand in brands)
+                                {
+                                    <option value="@brand.Id">@brand.Brand</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="control-label col-md-2">Type</label>
+                    <div class="col-md-8">
+                        <select value="@selectedTypeId" @onchange="TypeSelectionChanged" class="form-control">
+                            @if (types != null)
+                            {
+                                @foreach (var type in types)
+                                {
+                                    <option value="@type.Id">@type.Type</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="control-label col-md-2">Price</label>
+                    <div class="col-md-8">
+                        <InputNumber id="Price" @bind-Value="catalogItem.Price" class="form-control" />
+                        @if (priceRangeError)
+                        {
+                            <span class="text-danger">The Price must be a positive number with maximum two decimals between 0 and 1 million.</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="control-label col-md-2">Stock</label>
+                    <div class="col-md-8">
+                        <InputNumber id="Stock" @bind-Value="catalogItem.AvailableStock" class="form-control" />
+                        @if (stockRangeError)
+                        {
+                            <span class="text-danger">The field Stock must be between 0 and 10 million.</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="control-label col-md-2">Restock</label>
+                    <div class="col-md-8">
+                        <InputNumber id="Restock" @bind-Value="catalogItem.RestockThreshold" class="form-control" />
+                        @if (restockRangeError)
+                        {
+                            <span class="text-danger">The field Restock must be between 0 and 10 million.</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="control-label col-md-2">Max stock</label>
+                    <div class="col-md-8">
+                        <InputNumber id="Maxstock" @bind-Value="catalogItem.MaxStockThreshold" class="form-control" />
+                        @if (maxStockRangeError)
+                        {
+                            <span class="text-danger">The field Max stock must be between 0 and 10 million.</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="col-md-offset-2 col-md-8 text-right esh-button-actions">
+                        <NavLink href="/" class="btn esh-button esh-button-secondary">[ Cancel ]</NavLink>
+                        <button type="submit" class="btn esh-button esh-button-primary">[ Create ]</button>
+                    </div>
+                </div>
+
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string pictureUri = string.Empty;
+    private string tempImageName = string.Empty;
+    private IEnumerable<CatalogBrand> brands;
+    private IEnumerable<CatalogType> types;
+    private int selectedBrandId;
+    private int selectedTypeId;
+
+    private bool nameRequired = false;
+    private bool priceRangeError = false;
+    private bool stockRangeError = false;
+    private bool restockRangeError = false;
+    private bool maxStockRangeError = false;
+
+    private CatalogItem catalogItem = new CatalogItem
+    {
+        Price = 0.00m,
+        AvailableStock = 0,
+        RestockThreshold = 0,
+        MaxStockThreshold = 0
+    };
+
+    protected override void OnInitialized()
+    {
+        Logger.LogInformation("Now loading... /Catalog/Create.aspx");
+
+        pictureUri = ImageService.UrlDefaultImage();
+
+        brands = CatalogService.GetCatalogBrands();
+        types = CatalogService.GetCatalogTypes();
+
+        if (brands != null)
+        {
+            var firstBrand = System.Linq.Enumerable.FirstOrDefault(brands);
+            if (firstBrand != null)
+            {
+                selectedBrandId = firstBrand.Id;
+            }
+        }
+
+        if (types != null)
+        {
+            var firstType = System.Linq.Enumerable.FirstOrDefault(types);
+            if (firstType != null)
+            {
+                selectedTypeId = firstType.Id;
+            }
+        }
+    }
+
+    private void BrandSelectionChanged(ChangeEventArgs e)
+    {
+        if (e.Value != null && int.TryParse(e.Value.ToString(), out int brandId))
+        {
+            selectedBrandId = brandId;
+        }
+    }
+
+    private void TypeSelectionChanged(ChangeEventArgs e)
+    {
+        if (e.Value != null && int.TryParse(e.Value.ToString(), out int typeId))
+        {
+            selectedTypeId = typeId;
+        }
+    }
+
+    private void Create_Click()
+    {
+        nameRequired = false;
+        priceRangeError = false;
+        stockRangeError = false;
+        restockRangeError = false;
+        maxStockRangeError = false;
+
+        bool isValid = true;
+
+        if (string.IsNullOrWhiteSpace(catalogItem.Name))
+        {
+            nameRequired = true;
+            isValid = false;
+        }
+
+        if (catalogItem.Price < 0 || catalogItem.Price > 1000000)
+        {
+            priceRangeError = true;
+            isValid = false;
+        }
+
+        if (catalogItem.AvailableStock < 0 || catalogItem.AvailableStock > 10000000)
+        {
+            stockRangeError = true;
+            isValid = false;
+        }
+
+        if (catalogItem.RestockThreshold < 0 || catalogItem.RestockThreshold > 10000000)
+        {
+            restockRangeError = true;
+            isValid = false;
+        }
+
+        if (catalogItem.MaxStockThreshold < 0 || catalogItem.MaxStockThreshold > 10000000)
+        {
+            maxStockRangeError = true;
+            isValid = false;
+        }
+
+        if (!isValid)
+        {
+            return;
+        }
+
+        catalogItem.CatalogBrandId = selectedBrandId;
+        catalogItem.CatalogTypeId = selectedTypeId;
+        catalogItem.TempImageName = tempImageName;
+
+        if (!string.IsNullOrEmpty(catalogItem.TempImageName))
+        {
+            var fileName = Path.GetFileName(catalogItem.TempImageName);
+            catalogItem.PictureFileName = fileName;
+        }
+
+        CatalogService.CreateCatalogItem(catalogItem);
+
+        if (!string.IsNullOrEmpty(catalogItem.TempImageName))
+        {
+            ImageService.UpdateImage(catalogItem);
+        }
+
+        NavigationManager.NavigateTo("/");
+    }
+}

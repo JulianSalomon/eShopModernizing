@@ -1,0 +1,58 @@
+@namespace eShopLegacyWebForms.Components.ViewSwitcher
+
+@page "/ViewSwitcher"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Http
+@using System.Web
+@inject IHttpContextAccessor HttpContextAccessor
+@inject NavigationManager NavigationManager
+@inject ILogger<ViewSwitcher> Logger
+
+@if (isVisible)
+{
+    <div id="viewSwitcher">
+        @CurrentView view | <NavLink href="@SwitchUrl" data-ajax="false">Switch to @AlternateView</NavLink>
+    </div>
+}
+
+@code {
+    private string CurrentView { get; set; } = string.Empty;
+    private string AlternateView { get; set; } = string.Empty;
+    private string SwitchUrl { get; set; } = string.Empty;
+    private bool isVisible = true;
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            var httpContext = HttpContextAccessor.HttpContext;
+            if (httpContext == null)
+            {
+                Logger.LogWarning("HttpContext is not available in ViewSwitcher.");
+                isVisible = false;
+                return;
+            }
+
+            var userAgent = httpContext.Request.Headers["User-Agent"].ToString().ToLowerInvariant();
+            var isMobile = userAgent.Contains("mobi") ||
+                           userAgent.Contains("android") ||
+                           userAgent.Contains("iphone") ||
+                           userAgent.Contains("ipad") ||
+                           userAgent.Contains("windows phone");
+
+            CurrentView = isMobile ? "Mobile" : "Desktop";
+            AlternateView = isMobile ? "Desktop" : "Mobile";
+
+            var returnUrl = HttpUtility.UrlEncode(httpContext.Request.Path + httpContext.Request.QueryString);
+            SwitchUrl = $"/ViewSwitcher/SwitchView?view={AlternateView}&ReturnUrl={returnUrl}";
+
+            Logger.LogInformation("ViewSwitcher initialized. CurrentView: {CurrentView}, AlternateView: {AlternateView}", CurrentView, AlternateView);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing ViewSwitcher.");
+            isVisible = false;
+        }
+    }
+}

@@ -1,10 +1,19 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Net;
-using System.Web.Mvc;
 using eShopModernizedMVC.Models;
 using eShopModernizedMVC.Services;
 using System.IO;
 using log4net;
+using Microsoft.AspNetCore.Mvc;
+
+using Microsoft.AspNetCore.Http;
+
+using Microsoft.AspNetCore.Authorization;
+
+using Microsoft.AspNetCore.Mvc.Rendering;
+
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+
 
 namespace eShopModernizedMVC.Controllers
 {
@@ -35,13 +44,13 @@ namespace eShopModernizedMVC.Controllers
         {
             if (id == null)
             {
-                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+                return new StatusCodeResult(StatusCodes.Status400BadRequest);
             }
             _log.Info($"Now loading... /Catalog/Details?id={id}");
             CatalogItem catalogItem = _service.FindCatalogItem(id.Value);
             if (catalogItem == null)
             {
-                return HttpNotFound();
+                return NotFound();
             }
             AddUriPlaceHolder(catalogItem);
 
@@ -55,7 +64,7 @@ namespace eShopModernizedMVC.Controllers
             _log.Info($"Now loading... /Catalog/Create");
             ViewBag.CatalogBrandId = new SelectList(_service.GetCatalogBrands(), "Id", "Brand");
             ViewBag.CatalogTypeId = new SelectList(_service.GetCatalogTypes(), "Id", "Type");
-            ViewBag.UseAzureStorage = CatalogConfiguration.UseAzureStorage;
+            ViewBag.UseAzureStorage = true;
 
             return View(new CatalogItem()
             {
@@ -64,11 +73,11 @@ namespace eShopModernizedMVC.Controllers
         }
 
         // POST: Catalog/Create
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
+        // To protect from overposting attacks, please enable the specific properties you want to bind to, for
         // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [Authorize]
-        public ActionResult Create([Bind(Include = "Id,Name,Description,Price,PictureFileName,CatalogTypeId,CatalogBrandId,AvailableStock,RestockThreshold,MaxStockThreshold,OnReorder,TempImageName")] CatalogItem catalogItem)
+        public ActionResult Create([Bind("Id,Name,Description,Price,PictureFileName,CatalogTypeId,CatalogBrandId,AvailableStock,RestockThreshold,MaxStockThreshold,OnReorder,TempImageName")] CatalogItem catalogItem)
         {
             _log.Info($"Now processing... /Catalog/Create?catalogItemName={catalogItem.Name}");
             if (ModelState.IsValid)
@@ -89,7 +98,7 @@ namespace eShopModernizedMVC.Controllers
 
             ViewBag.CatalogBrandId = new SelectList(_service.GetCatalogBrands(), "Id", "Brand", catalogItem.CatalogBrandId);
             ViewBag.CatalogTypeId = new SelectList(_service.GetCatalogTypes(), "Id", "Type", catalogItem.CatalogTypeId);
-            ViewBag.UseAzureStorage = CatalogConfiguration.UseAzureStorage;
+            ViewBag.UseAzureStorage = true;
             return View(catalogItem);
         }
 
@@ -99,7 +108,7 @@ namespace eShopModernizedMVC.Controllers
         {
             if (id == null)
             {
-                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+                return new StatusCodeResult(StatusCodes.Status400BadRequest);
             }
 
             _log.Info($"Now loading... /Catalog/Edit?id={id}");
@@ -107,21 +116,21 @@ namespace eShopModernizedMVC.Controllers
 
             if (catalogItem == null)
             {
-                return HttpNotFound();
+                return NotFound();
             }
             AddUriPlaceHolder(catalogItem);
             ViewBag.CatalogBrandId = new SelectList(_service.GetCatalogBrands(), "Id", "Brand", catalogItem.CatalogBrandId);
             ViewBag.CatalogTypeId = new SelectList(_service.GetCatalogTypes(), "Id", "Type", catalogItem.CatalogTypeId);
-            ViewBag.UseAzureStorage = CatalogConfiguration.UseAzureStorage;
+            ViewBag.UseAzureStorage = true;
             return View(catalogItem);
         }
 
         // POST: Catalog/Edit/5
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
+        // To protect from overposting attacks, please enable the specific properties you want to bind to, for
         // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [Authorize]
-        public ActionResult Edit([Bind(Include = "Id,Name,Description,Price,PictureFileName,CatalogTypeId,CatalogBrandId,AvailableStock,RestockThreshold,MaxStockThreshold,OnReorder,TempImageName")] CatalogItem catalogItem)
+        public ActionResult Edit([Bind("Id,Name,Description,Price,PictureFileName,CatalogTypeId,CatalogBrandId,AvailableStock,RestockThreshold,MaxStockThreshold,OnReorder,TempImageName")] CatalogItem catalogItem)
         {
             _log.Info($"Now processing... /Catalog/Edit?id={catalogItem.Id}");
             if (ModelState.IsValid)
@@ -138,7 +147,7 @@ namespace eShopModernizedMVC.Controllers
             }
             ViewBag.CatalogBrandId = new SelectList(_service.GetCatalogBrands(), "Id", "Brand", catalogItem.CatalogBrandId);
             ViewBag.CatalogTypeId = new SelectList(_service.GetCatalogTypes(), "Id", "Type", catalogItem.CatalogTypeId);
-            ViewBag.UseAzureStorage = CatalogConfiguration.UseAzureStorage;
+            ViewBag.UseAzureStorage = true;
             return View(catalogItem);
         }
 
@@ -149,12 +158,12 @@ namespace eShopModernizedMVC.Controllers
             _log.Info($"Now loading... /Catalog/Delete?id={id}");
             if (id == null)
             {
-                return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+                return new StatusCodeResult(StatusCodes.Status400BadRequest);
             }
             CatalogItem catalogItem = _service.FindCatalogItem(id.Value);
             if (catalogItem == null)
             {
-                return HttpNotFound();
+                return NotFound();
             }
             AddUriPlaceHolder(catalogItem);
 
@@ -195,4 +204,3 @@ namespace eShopModernizedMVC.Controllers
         }
     }
 }
-

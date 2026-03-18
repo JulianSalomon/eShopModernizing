@@ -1,13 +1,14 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity;
 using System.Data.Entity.ModelConfiguration;
+using System.Data.Common;
 
 namespace eShopModernizedMVC.Models
 {
     public class CatalogDBContext : DbContext
     {
-        public CatalogDBContext(ISqlConnectionFactory provider)
-            : base(provider.CreateConnection(), true)
+        public CatalogDBContext(DbConnection connection)
+            : base(connection, true)
         {
         }
 

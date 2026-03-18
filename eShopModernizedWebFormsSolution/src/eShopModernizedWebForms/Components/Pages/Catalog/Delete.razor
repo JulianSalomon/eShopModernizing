@@ -1,0 +1,112 @@
+@namespace eShopModernizedWebForms.Components.Pages.Catalog.Delete
+
+@page "/Catalog/Delete/{id:int}"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using eShopModernizedWebForms.Models
+@using eShopModernizedWebForms.Services
+@using Microsoft.Extensions.Logging
+@inject ICatalogService CatalogService
+@inject NavigationManager NavigationManager
+@inject ILogger<Delete> Logger
+
+<h2 class="esh-body-title">Delete</h2>
+
+<div class="container">
+    <h3>Are you sure you want to delete this?</h3>
+    @if (productToDelete != null)
+    {
+        <div class="row">
+            <div class="col-md-4">
+                <img class="col-md-8 esh-picture" src="@("/Pics/" + productToDelete.PictureFileName)" />
+            </div>
+            <dl class="col-md-4 dl-horizontal">
+                <dt>Name
+                </dt>
+                <dd>
+                    <span>@productToDelete.Name</span>
+                </dd>
+
+                <dt>Description
+                </dt>
+                <dd>
+                    <span>@productToDelete.Description</span>
+                </dd>
+
+                <dt>Brand
+                </dt>
+                <dd>
+                    <span>@productToDelete.CatalogBrand.Brand</span>
+                </dd>
+
+                <dt>Type
+                </dt>
+                <dd>
+                    <span>@productToDelete.CatalogType.Type</span>
+                </dd>
+
+                <dt>Price
+                </dt>
+                <dd>
+                    <span class="esh-price">@productToDelete.Price</span>
+                </dd>
+            </dl>
+            <dl class="col-md-4 dl-horizontal">
+                <dt>Picture name
+                </dt>
+                <dd>
+                    <span>@productToDelete.PictureFileName</span>
+                </dd>
+
+                <dt>Stock
+                </dt>
+                <dd>
+                    <span>@productToDelete.AvailableStock</span>
+                </dd>
+
+                <dt>Restock
+                </dt>
+                <dd>
+                    <span>@productToDelete.RestockThreshold</span>
+                </dd>
+
+                <dt>Max stock
+                </dt>
+                <dd>
+                    <span>@productToDelete.MaxStockThreshold</span>
+                </dd>
+
+                <dt></dt>
+                <dd class="esh-button-actions">
+                    <NavLink href="/" class="btn esh-button esh-button-secondary">[ Cancel ]
+                    </NavLink>
+                    <button class="btn esh-button esh-button-primary" @onclick="Delete_Click">[ Delete ]</button>
+                </dd>
+            </dl>
+        </div>
+    }
+    else
+    {
+        <p>Loading product details...</p>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int id { get; set; }
+
+    protected CatalogItem productToDelete;
+
+    protected override void OnInitialized()
+    {
+        Logger.LogInformation($"Now loading... /Catalog/Delete.aspx?id={id}");
+        productToDelete = CatalogService.FindCatalogItem(id);
+    }
+
+    protected void Delete_Click()
+    {
+        CatalogService.RemoveCatalogItem(productToDelete);
+        NavigationManager.NavigateTo("/");
+    }
+}

@@ -1,0 +1,257 @@
+@namespace eShopModernizedWebForms.Components.Pages.Catalog.Edit
+
+@page "/Catalog/Edit/{id:int}"
+@rendermode InteractiveServer
+
+@using eShopModernizedWebForms.Models
+@using eShopModernizedWebForms.Services
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.Extensions.Logging
+@using System.IO
+
+@inject ICatalogService CatalogService
+@inject IImageService ImageService
+@inject NavigationManager NavigationManager
+@inject ILogger<Edit> Logger
+
+<h2 class="esh-body-title">Edit</h2>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-4">
+            @if (product != null)
+            {
+                <img class="esh-picture" src="@("/Pics/" + product.PictureFileName)" alt="Product picture" />
+            }
+
+            @if (useAzureStorage)
+            {
+                <div id="UploadButton" class="row">
+                    <div class="col-md-6">
+                        <label class="btn btn-default esh-button-upload">
+                            Upload image
+                            <input type="file" id="uploadEditorImage" accept="image/*" class="hidden" />
+                        </label>
+                        <input type="hidden" id="TempImageName" @bind="tempImageName" />
+                    </div>
+                    <div class="esh-loader col-md-3 hidden"></div>
+                    <div class="col-md-6">
+                        <span class="text-danger field-validation-error" id="img-validation-error"></span>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="col-md-8 form-horizontal">
+            @if (product != null)
+            {
+                <EditForm Model="product" OnValidSubmit="Save_Click" FormName="EditProductForm">
+                    <DataAnnotationsValidator />
+
+                    <div class="form-group">
+                        <label class="control-label col-md-4">Name</label>
+                        <div class="col-md-8">
+                            <InputText id="Name" class="form-control" @bind-Value="product.Name" />
+                            <ValidationMessage For="@(() => product.Name)" class="field-validation-valid text-danger" />
+                            @if (string.IsNullOrWhiteSpace(product.Name))
+                            {
+                                <span class="field-validation-valid text-danger">The Name field is required.</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label col-md-4">Description</label>
+                        <div class="col-md-8">
+                            <InputText id="Description" class="form-control" @bind-Value="product.Description" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label col-md-4">Brand</label>
+                        <div class="col-md-8">
+                            <select class="form-control"
+                                    value="@selectedBrandId"
+                                    @onchange="BrandSelectionChanged">
+                                @if (brands != null)
+                                {
+                                    @foreach (var brand in brands)
+                                    {
+                                        <option value="@brand.Id">@brand.Brand</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label col-md-4">Type</label>
+                        <div class="col-md-8">
+                            <select class="form-control"
+                                    value="@selectedTypeId"
+                                    @onchange="TypeSelectionChanged">
+                                @if (types != null)
+                                {
+                                    @foreach (var type in types)
+                                    {
+                                        <option value="@type.Id">@type.Type</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label col-md-4">Price</label>
+                        <div class="col-md-8">
+                            <InputNumber id="Price" class="form-control" @bind-Value="product.Price" />
+                            @if (product.Price < 0 || product.Price > 1000000)
+                            {
+                                <span class="text-danger">The Price must be a positive number with maximum two decimals between 0 and 1 million.</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label col-md-4">Picture name</label>
+                        <div class="col-md-8">
+                            <InputText id="PictureFileName" class="form-control" @bind-Value="product.PictureFileName" readonly title="Not allowed for edition" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label col-md-4">Stock</label>
+                        <div class="col-md-8">
+                            <InputNumber id="Stock" class="form-control" @bind-Value="product.AvailableStock" />
+                            @if (product.AvailableStock < 0 || product.AvailableStock > 10000000)
+                            {
+                                <span class="text-danger">The field Stock must be between 0 and 10 million.</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label col-md-4">Restock</label>
+                        <div class="col-md-8">
+                            <InputNumber id="Restock" class="form-control" @bind-Value="product.RestockThreshold" />
+                            @if (product.RestockThreshold < 0 || product.RestockThreshold > 10000000)
+                            {
+                                <span class="text-danger">The field Restock must be between 0 and 10 million.</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="control-label col-md-4">Max stock</label>
+                        <div class="col-md-8">
+                            <InputNumber id="Maxstock" class="form-control" @bind-Value="product.MaxStockThreshold" />
+                            @if (product.MaxStockThreshold < 0 || product.MaxStockThreshold > 10000000)
+                            {
+                                <span class="text-danger">The field Max stock must be between 0 and 10 million.</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="col-md-12 text-right esh-button-actions">
+                            <NavLink href="/" class="btn esh-button esh-button-secondary">[ Cancel ]</NavLink>
+                            <button type="submit" class="btn esh-button esh-button-primary">[ Save ]</button>
+                        </div>
+                    </div>
+
+                </EditForm>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private CatalogItem product;
+    private IEnumerable<CatalogBrand> brands;
+    private IEnumerable<CatalogType> types;
+    private int selectedBrandId;
+    private int selectedTypeId;
+    private string tempImageName = string.Empty;
+    private bool useAzureStorage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Logger.LogInformation("Now loading... /Catalog/Edit.razor");
+
+        useAzureStorage = false;
+
+        product = CatalogService.FindCatalogItem(Id);
+
+        if (product != null)
+        {
+            brands = CatalogService.GetCatalogBrands();
+            selectedBrandId = product.CatalogBrandId;
+
+            types = CatalogService.GetCatalogTypes();
+            selectedTypeId = product.CatalogTypeId;
+        }
+    }
+
+    private void BrandSelectionChanged(ChangeEventArgs e)
+    {
+        if (e.Value != null && int.TryParse(e.Value.ToString(), out int brandId))
+        {
+            selectedBrandId = brandId;
+        }
+    }
+
+    private void TypeSelectionChanged(ChangeEventArgs e)
+    {
+        if (e.Value != null && int.TryParse(e.Value.ToString(), out int typeId))
+        {
+            selectedTypeId = typeId;
+        }
+    }
+
+    private void Save_Click()
+    {
+        if (product == null)
+        {
+            return;
+        }
+
+        var catalogItem = new CatalogItem
+        {
+            Id = Id,
+            Name = product.Name,
+            Description = product.Description,
+            CatalogBrandId = selectedBrandId,
+            CatalogTypeId = selectedTypeId,
+            Price = product.Price,
+            PictureFileName = product.PictureFileName,
+            AvailableStock = product.AvailableStock,
+            RestockThreshold = product.RestockThreshold,
+            MaxStockThreshold = product.MaxStockThreshold,
+            TempImageName = tempImageName
+        };
+
+        if (!string.IsNullOrEmpty(catalogItem.TempImageName))
+        {
+            ImageService.UpdateImage(catalogItem);
+            var fileName = Path.GetFileName(catalogItem.TempImageName);
+            catalogItem.PictureFileName = fileName;
+        }
+
+        CatalogService.UpdateCatalogItem(catalogItem);
+
+        NavigationManager.NavigateTo("/");
+    }
+
+    public IEnumerable<CatalogBrand> GetBrands()
+    {
+        return CatalogService.GetCatalogBrands();
+    }
+
+    public IEnumerable<CatalogType> GetTypes()
+    {
+        return CatalogService.GetCatalogTypes();
+    }
+}

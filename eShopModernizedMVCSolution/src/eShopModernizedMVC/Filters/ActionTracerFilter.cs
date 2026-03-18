@@ -1,5 +1,8 @@
-﻿using System.Diagnostics;
-using System.Web.Mvc;
+using System.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Mvc.Filters;
+
 
 namespace eShopModernizedMVC.Filters
 {
@@ -7,7 +10,7 @@ namespace eShopModernizedMVC.Filters
     {
         public override void OnActionExecuting(ActionExecutingContext filterContext)
         {
-                Trace.TraceInformation($"Received request for action {filterContext.ActionDescriptor.ActionName} in controller {filterContext.Controller.GetType().Name}.");
+                Trace.TraceInformation($"Received request for action {((ControllerActionDescriptor)filterContext.ActionDescriptor).ActionName} in controller {filterContext.Controller.GetType().Name}.");
                 base.OnActionExecuting(filterContext);
         }
     }

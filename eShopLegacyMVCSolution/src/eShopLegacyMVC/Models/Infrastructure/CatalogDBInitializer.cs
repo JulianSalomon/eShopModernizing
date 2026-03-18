@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data.Entity;
@@ -26,7 +26,7 @@ namespace eShopLegacyMVC.Models.Infrastructure
         public CatalogDBInitializer(CatalogItemHiLoGenerator indexGenerator)
         {
             this.indexGenerator = indexGenerator;
-            useCustomizationData = bool.Parse(ConfigurationManager.AppSettings["UseCustomizationData"]);
+            useCustomizationData = bool.Parse(System.Configuration.ConfigurationManager.AppSettings["UseCustomizationData"]);
         }
 
         protected override void Seed(CatalogDBContext context)
@@ -39,7 +39,7 @@ namespace eShopLegacyMVC.Models.Infrastructure
             AddCatalogBrands(context);
             AddCatalogItems(context);
             AddCatalogItemPictures();
-            
+
         }
 
         private void AddCatalogTypes(CatalogDBContext context)
@@ -348,7 +348,7 @@ namespace eShopLegacyMVC.Models.Infrastructure
             {
                 file.Delete();
             }
-            
+
             string zipFileCatalogItemPictures = Path.Combine(contentRootPath, "Setup", "CatalogItems.zip");
             ZipFile.ExtractToDirectory(zipFileCatalogItemPictures, picturePath.ToString());
         }

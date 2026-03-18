@@ -1,0 +1,110 @@
+@namespace eShopModernizedWebForms.Components.Pages.Catalog.Details
+
+@page "/Catalog/Details/{id:int}"
+
+@using eShopModernizedWebForms.Models
+@using eShopModernizedWebForms.Services
+@using Microsoft.Extensions.Logging
+
+@inject ICatalogService CatalogService
+@inject ILogger<Details> Logger
+
+<h2 class="esh-body-title">Details</h2>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-4">
+            @if (product != null)
+            {
+                <img class="col-md-8 esh-picture" src="@("/Pics/" + product.PictureFileName)" />
+            }
+        </div>
+        <dl class="col-md-4 dl-horizontal">
+            <dt>Name
+            </dt>
+
+            <dd>
+                <label>@product?.Name</label>
+            </dd>
+
+            <dt>Description
+            </dt>
+
+            <dd>
+                <label>@product?.Description</label>
+            </dd>
+
+            <dt>Brand
+            </dt>
+
+            <dd>
+                <label>@product?.CatalogBrand?.Brand</label>
+            </dd>
+
+            <dt>Type
+            </dt>
+
+            <dd>
+                <label>@product?.CatalogType?.Type</label>
+            </dd>
+            <dt>Price
+            </dt>
+
+            <dd>
+                <label class="esh-price">@product?.Price</label>
+            </dd>
+        </dl>
+        <dl class="col-md-4 dl-horizontal">
+            <dt>
+                Picture name
+            </dt>
+
+            <dd>
+                <label>@product?.PictureFileName</label>
+            </dd>
+
+            <dt>Stock
+            </dt>
+
+            <dd>
+                <label>@product?.AvailableStock</label>
+            </dd>
+
+            <dt>Restock
+            </dt>
+
+            <dd>
+                <label>@product?.RestockThreshold</label>
+            </dd>
+
+            <dt>Max stock
+            </dt>
+
+            <dd>
+                <label>@product?.MaxStockThreshold</label>
+            </dd>
+
+            <dd class="esh-button-actions">
+                <NavLink href="/" class="btn esh-button esh-button-secondary">
+                    [ Back to list ]
+                </NavLink>
+                <NavLink href="@($"/Catalog/Edit/{product?.Id}")" class="btn esh-button esh-button-primary">
+                    [ Edit ]
+                </NavLink>
+            </dd>
+        </dl>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int id { get; set; }
+
+    protected CatalogItem product;
+
+    protected override void OnInitialized()
+    {
+        Logger.LogInformation($"Now loading... /Catalog/Details.aspx?id={id}");
+        product = CatalogService.FindCatalogItem(id);
+    }
+}

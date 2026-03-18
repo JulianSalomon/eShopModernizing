@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using eShopLegacyWebForms.Models;
 using System.Collections.Generic;
 using System.Data.Entity;
-using System.Data.SqlClient;
 using System.Linq;
 using eShopLegacyWebForms.ViewModel;
+using Microsoft.Data.SqlClient;
+
 
 namespace eShopLegacyWebForms.Services
 {
