@@ -356,6 +356,24 @@ eshop/
 
 ---
 
+## Known Issues (Pre-existing)
+
+The following are **pre-existing issues from the original .NET Framework to ASP.NET Core modernization** and are NOT related to the current transformation:
+
+### Static Asset/Styling Differences Across Apps
+
+| App | Port | Styling | Notes |
+|-----|------|---------|-------|
+| **eShopPorted** | 5002 | ✅ Best | All CSS, images, and layout working correctly |
+| **eShopLegacyMVC** | 5001 | ⚠️ Partial | Product images missing (`Pics/` folder not in `wwwroot/`); some CSS broken due to case-sensitivity (`site.css` vs `Site.css`) on Linux |
+| **eShopLegacyWebForms** | 5003 | ⚠️ Partial | Minor CSS issues from case-sensitivity mismatches on Linux containers |
+
+**Root cause**: In ASP.NET Core, static files must be served from `wwwroot/`. The original modernization placed some asset folders (`Pics/`, `Content/`) at the project root rather than inside `wwwroot/`. Additionally, Linux file systems are case-sensitive, so `site.css` ≠ `Site.css`.
+
+**Impact**: Functional behavior is correct (data loads, CRUD operations work) — only visual presentation is affected.
+
+---
+
 ## Environment Variables
 
 All connection strings can be overridden via environment variables:
