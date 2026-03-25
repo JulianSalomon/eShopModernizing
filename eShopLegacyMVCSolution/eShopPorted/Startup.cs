@@ -51,6 +51,17 @@ namespace eShopPorted
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+            // Ensure database is created and seeded
+            bool useMockData = Configuration.GetValue<bool>("UseMockData");
+            if (!useMockData)
+            {
+                using (var serviceScope = app.ApplicationServices.CreateScope())
+                {
+                    var context = serviceScope.ServiceProvider.GetService<CatalogDBContext>();
+                    context.Database.EnsureCreated();
+                }
+            }
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();

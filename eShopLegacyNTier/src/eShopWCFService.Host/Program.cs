@@ -5,6 +5,14 @@ using eShopWCFService;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Bridge connection string from appsettings.json to environment variable
+// that CatalogConfiguration reads from
+var connectionString = builder.Configuration.GetConnectionString("EntityModel");
+if (!string.IsNullOrEmpty(connectionString))
+{
+    Environment.SetEnvironmentVariable("ConnectionString", connectionString);
+}
+
 // Add CoreWCF services
 builder.Services.AddServiceModelServices();
 builder.Services.AddServiceModelMetadata();

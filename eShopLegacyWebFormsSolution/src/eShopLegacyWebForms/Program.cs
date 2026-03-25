@@ -14,7 +14,8 @@ builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
 {
     var useMockData = builder.Configuration.GetValue<bool>("AppSettings:UseMockData");
-    containerBuilder.RegisterModule(new ApplicationModule(useMockData));
+    var connectionString = builder.Configuration.GetConnectionString("CatalogDBContext");
+    containerBuilder.RegisterModule(new ApplicationModule(useMockData, connectionString));
 });
 
 // Add Blazor Server services
