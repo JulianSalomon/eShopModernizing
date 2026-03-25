@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>eShopWCFService.Host</RootNamespace>
+    <AssemblyName>eShopWCFService.Host</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CoreWCF.Http" Version="1.7.0" />
+    <PackageReference Include="CoreWCF.NetTcp" Version="1.7.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../eShopWCFService/eShopWCFService.csproj" />
+  </ItemGroup>
+</Project>

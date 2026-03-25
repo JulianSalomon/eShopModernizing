@@ -571,15 +571,15 @@ namespace eShopWinForms.eShopServiceReference {
         }
 
         public CatalogServiceClient(string endpointConfigurationName) :
-                base(null, null) {
+                base((string)null, (System.ServiceModel.EndpointAddress)null) {
         }
 
         public CatalogServiceClient(string endpointConfigurationName, string remoteAddress) :
-                base(null, new System.ServiceModel.EndpointAddress(remoteAddress)) {
+                base((string)null, new System.ServiceModel.EndpointAddress(remoteAddress)) {
         }
 
         public CatalogServiceClient(string endpointConfigurationName, System.ServiceModel.EndpointAddress remoteAddress) :
-                base(null, remoteAddress) {
+                base((string)null, remoteAddress) {
         }
 
         public CatalogServiceClient(System.ServiceModel.Channels.Binding binding, System.ServiceModel.EndpointAddress remoteAddress) :

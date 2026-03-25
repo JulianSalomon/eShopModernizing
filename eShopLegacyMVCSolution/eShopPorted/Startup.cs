@@ -24,7 +24,10 @@ namespace eShopPorted
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc();
+            services.AddMvc(options =>
+            {
+                options.EnableEndpointRouting = false;
+            });
             bool useMockData = Configuration.GetValue<bool>("UseMockData");
             if (!useMockData)
             {
@@ -48,6 +51,17 @@ namespace eShopPorted
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+            // Ensure database is created and seeded
+            bool useMockData = Configuration.GetValue<bool>("UseMockData");
+            if (!useMockData)
+            {
+                using (var serviceScope = app.ApplicationServices.CreateScope())
+                {
+                    var context = serviceScope.ServiceProvider.GetService<CatalogDBContext>();
+                    context.Database.EnsureCreated();
+                }
+            }
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();

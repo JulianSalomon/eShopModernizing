@@ -8,10 +8,12 @@ namespace eShopLegacyWebForms.Modules
     public class ApplicationModule : Module
     {
         private bool useMockData;
+        private string connectionString;
 
-        public ApplicationModule(bool useMockData)
+        public ApplicationModule(bool useMockData, string connectionString = null)
         {
             this.useMockData = useMockData;
+            this.connectionString = connectionString;
         }
         protected override void Load(ContainerBuilder builder)
         {
@@ -28,8 +30,16 @@ namespace eShopLegacyWebForms.Modules
                     .InstancePerLifetimeScope();
             }
 
-            builder.RegisterType<CatalogDBContext>()
-                .InstancePerLifetimeScope();
+            if (!string.IsNullOrEmpty(connectionString))
+            {
+                builder.Register(c => new CatalogDBContext(connectionString))
+                    .InstancePerLifetimeScope();
+            }
+            else
+            {
+                builder.RegisterType<CatalogDBContext>()
+                    .InstancePerLifetimeScope();
+            }
 
             builder.RegisterType<CatalogDBInitializer>()
                 .InstancePerLifetimeScope();
