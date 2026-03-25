@@ -26,7 +26,7 @@ namespace eShopLegacyMVC.Models.Infrastructure
         public CatalogDBInitializer(CatalogItemHiLoGenerator indexGenerator)
         {
             this.indexGenerator = indexGenerator;
-            useCustomizationData = bool.Parse(System.Configuration.ConfigurationManager.AppSettings["UseCustomizationData"]);
+            useCustomizationData = bool.Parse(eShopLegacyMVC.ConfigurationManager.Configuration?["UseCustomizationData"] ?? "false");
         }
 
         protected override void Seed(CatalogDBContext context)
