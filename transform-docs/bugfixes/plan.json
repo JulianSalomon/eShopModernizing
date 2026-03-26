@@ -1,0 +1,72 @@
+{
+  "plan": [
+    {
+      "title": "Step 1: Fix eShopLegacyMVC - Move static assets (Pics/, fonts/) into wwwroot/",
+      "module": "eShopLegacyMVCSolution/src/eShopLegacyMVC",
+      "goal": "Move the Pics/ and fonts/ directories from the project root into wwwroot/ so ASP.NET Core's static file middleware can serve them, matching the eShopPorted reference structure.",
+      "description": "The eShopLegacyMVC project has Pics/ (product catalog images) and fonts/ (Montserrat font files) at the project root level instead of inside wwwroot/. The reference eShopPorted project has these correctly placed at wwwroot/Pics/ and wwwroot/fonts/. Steps:\n1. Move eShopLegacyMVCSolution/src/eShopLegacyMVC/Pics/ to eShopLegacyMVCSolution/src/eShopLegacyMVC/wwwroot/Pics/\n2. Move eShopLegacyMVCSolution/src/eShopLegacyMVC/fonts/ to eShopLegacyMVCSolution/src/eShopLegacyMVC/wwwroot/fonts/\n3. The base.css file already references ../fonts/ relative to Content/ directory, which correctly resolves to wwwroot/fonts/ once fonts/ is inside wwwroot/ (since Content/ is already in wwwroot/).\n4. The Site.css file references ../images/main_banner.png relative to Content/ directory, which resolves to wwwroot/images/ - the Images/ directory casing issue is addressed in Step 2.",
+      "target_components": [
+        "eShopLegacyMVCSolution/src/eShopLegacyMVC/Pics/ (move to wwwroot/Pics/)",
+        "eShopLegacyMVCSolution/src/eShopLegacyMVC/fonts/ (move to wwwroot/fonts/)"
+      ],
+      "verification": "dotnet build eShopLegacyMVCSolution/eShopLegacyMVC.sln > build.log 2>&1 && dotnet build eShopLegacyWebFormsSolution/eShopLegacyWebForms.sln >> build.log 2>&1 && dotnet build eShopLegacyNTier/eShopLegacyNTier.sln >> build.log 2>&1 > build.log 2>&1"
+    },
+    {
+      "title": "Step 2: Fix eShopLegacyMVC - Resolve case-sensitivity mismatches in file/directory names and references",
+      "module": "eShopLegacyMVCSolution/src/eShopLegacyMVC",
+      "goal": "Fix all case-sensitivity mismatches between file references in views/CSS and actual file/directory names on disk, ensuring correct rendering on Linux case-sensitive file systems.",
+      "description": "Multiple case-sensitivity issues exist in eShopLegacyMVC that will cause 404 errors on Linux:\n\n1. **Site.css vs site.css**: The _Layout.cshtml references ~/Content/site.css (lowercase 's') but the actual file on disk is Site.css (uppercase 'S'). Fix by renaming the file to site.css to match the reference, OR update the reference to ~/Content/Site.css. Since the eShopPorted reference uses ~/Content/Site.css with file named Site.css, use that pattern: update the _Layout.cshtml reference from ~/Content/site.css to ~/Content/Site.css.\n\n2. **Images/ vs images/**: The _Layout.cshtml references ~/images/brand.png, ~/images/brand_dark.png, ~/images/main_footer_text.png (lowercase 'images') but the actual directory on disk is Images/ (uppercase 'I'). The CSS Site.css also uses url(\"../images/main_banner.png\"). Fix by renaming the directory from Images/ to images/ to match all references consistently.\n\nNote: The eShopPorted reference also has this same Images/ vs images/ casing issue, meaning it too would fail on Linux. Since the views and CSS consistently use lowercase 'images', rename the directory to lowercase 'images' in both eShopLegacyMVC and eShopPorted.\n\nAlso fix the TODO comment in _Layout.cshtml line 12 that says 'File not found at this path' after fixing the casing.",
+      "target_components": [
+        "eShopLegacyMVCSolution/src/eShopLegacyMVC/Views/Shared/_Layout.cshtml (fix site.css -> Site.css reference OR rename file)",
+        "eShopLegacyMVCSolution/src/eShopLegacyMVC/wwwroot/Images/ (rename to images/ to match references)",
+        "eShopLegacyMVCSolution/eShopPorted/wwwroot/Images/ (rename to images/ to match references in _Layout.cshtml)"
+      ],
+      "verification": "dotnet build eShopLegacyMVCSolution/eShopLegacyMVC.sln > build.log 2>&1 && dotnet build eShopLegacyWebFormsSolution/eShopLegacyWebForms.sln >> build.log 2>&1 && dotnet build eShopLegacyNTier/eShopLegacyNTier.sln >> build.log 2>&1 > build.log 2>&1"
+    },
+    {
+      "title": "Step 3: Fix eShopLegacyMVC - Implement AddUriPlaceHolder to enable product image rendering",
+      "module": "eShopLegacyMVCSolution/src/eShopLegacyMVC",
+      "goal": "Fix the empty AddUriPlaceHolder method in CatalogController so that product images (PictureUri) are properly set and rendered in catalog views.",
+      "description": "In eShopLegacyMVC, the CatalogController.AddUriPlaceHolder method is empty, which means PictureUri is never set on CatalogItem. As a result, all <img src='@item.PictureUri'/> or @Model.PictureUri references in the catalog views (CatalogTable.cshtml, Edit.cshtml, Delete.cshtml, Details.cshtml) render with no image. The eShopPorted reference implementation sets: item.PictureUri = $\"/Pics/{item.Id}.png\"\n\nImplement the same logic in eShopLegacyMVC's CatalogController:\n```csharp\nprivate void AddUriPlaceHolder(CatalogItem item)\n{\n    item.PictureUri = $\"/Pics/{item.Id}.png\";\n}\n```\n\nThis works because the Pics/ folder (now in wwwroot/Pics/ after Step 1) contains files named 1.png, 2.png, etc., and ASP.NET Core's static file middleware serves them at /Pics/1.png etc.",
+      "target_components": [
+        "eShopLegacyMVCSolution/src/eShopLegacyMVC/Controllers/CatalogController.cs (implement AddUriPlaceHolder method)"
+      ],
+      "verification": "dotnet build eShopLegacyMVCSolution/eShopLegacyMVC.sln > build.log 2>&1 && dotnet build eShopLegacyWebFormsSolution/eShopLegacyWebForms.sln >> build.log 2>&1 && dotnet build eShopLegacyNTier/eShopLegacyNTier.sln >> build.log 2>&1 > build.log 2>&1"
+    },
+    {
+      "title": "Step 4: Fix eShopLegacyMVC - Update CatalogDBInitializer Pics path for wwwroot",
+      "module": "eShopLegacyMVCSolution/src/eShopLegacyMVC",
+      "goal": "Update the CatalogDBInitializer to look for Pics/ within the wwwroot directory instead of the content root, since Pics/ has been moved into wwwroot/.",
+      "description": "The CatalogDBInitializer.cs at line 346 references Pics at the content root path:\n```csharp\nDirectoryInfo picturePath = new DirectoryInfo(Path.Combine(contentRootPath, \"Pics\"));\n```\nSince Pics/ has been moved to wwwroot/Pics/, this path needs to be updated. The PicController already uses IWebHostEnvironment.WebRootPath correctly. Update CatalogDBInitializer to look for Pics within wwwroot:\n```csharp\nDirectoryInfo picturePath = new DirectoryInfo(Path.Combine(contentRootPath, \"wwwroot\", \"Pics\"));\n```\nAlternatively, if the initializer injects IWebHostEnvironment, use WebRootPath. Review the initializer code and update the path accordingly.",
+      "target_components": [
+        "eShopLegacyMVCSolution/src/eShopLegacyMVC/Models/Infrastructure/CatalogDBInitializer.cs (update Pics path reference)"
+      ],
+      "verification": "dotnet build eShopLegacyMVCSolution/eShopLegacyMVC.sln > build.log 2>&1 && dotnet build eShopLegacyWebFormsSolution/eShopLegacyWebForms.sln >> build.log 2>&1 && dotnet build eShopLegacyNTier/eShopLegacyNTier.sln >> build.log 2>&1 > build.log 2>&1"
+    },
+    {
+      "title": "Step 5: Fix eShopLegacyWebForms - Resolve case-sensitivity and Bundle.config mismatches",
+      "module": "eShopLegacyWebFormsSolution/src/eShopLegacyWebForms",
+      "goal": "Fix the Bundle.config case mismatch (references Site.css but file is site.css) and clean up any remaining static asset reference inconsistencies in the Blazor Server application.",
+      "description": "The eShopLegacyWebForms project (now Blazor Server) has the following issues:\n\n1. **Bundle.config** references ~/Content/Site.css (uppercase S) but the actual file on disk is site.css (lowercase s). Either rename the file to Site.css to match Bundle.config, or update Bundle.config to reference site.css. Since the App.razor already correctly references Content/site.css (lowercase), rename Bundle.config reference to match: site.css.\n\n2. **Scripts/ at project root**: There are 2 files (README.md, index.d.ts) at eShopLegacyWebFormsSolution/src/eShopLegacyWebForms/Scripts/ (outside wwwroot). These are documentation files, not servable static assets, so they can be left in place or removed. The actual Scripts are already in wwwroot/Scripts/.\n\n3. **App.razor CSS references**: The App.razor uses paths like 'Content/site.css' without ~/ prefix (which is correct for Blazor since <base href=\"/\" /> is set). Verify all paths use the base-relative format correctly.\n\n4. Confirm UseStaticFiles() is present in Program.cs (already confirmed present).",
+      "target_components": [
+        "eShopLegacyWebFormsSolution/src/eShopLegacyWebForms/Bundle.config (fix Site.css -> site.css reference)",
+        "eShopLegacyWebFormsSolution/src/eShopLegacyWebForms/Components/App.razor (verify CSS path references)"
+      ],
+      "verification": "dotnet build eShopLegacyMVCSolution/eShopLegacyMVC.sln > build.log 2>&1 && dotnet build eShopLegacyWebFormsSolution/eShopLegacyWebForms.sln >> build.log 2>&1 && dotnet build eShopLegacyNTier/eShopLegacyNTier.sln >> build.log 2>&1 > build.log 2>&1"
+    },
+    {
+      "title": "Step 6: Cross-project validation - Verify all three apps have consistent wwwroot structure and UseStaticFiles()",
+      "module": "All projects",
+      "goal": "Perform a final cross-project audit to ensure all three applications have consistent wwwroot/ directory structures, correct UseStaticFiles() middleware, matching file references, and no remaining case-sensitivity issues.",
+      "description": "Final validation across all three projects:\n\n1. **Verify wwwroot/ structure consistency**: All three projects should have wwwroot/Content/, wwwroot/Scripts/, wwwroot/Pics/, wwwroot/fonts/, wwwroot/images/ (or Images/ with matching references). Confirm no static assets remain at the project root that should be in wwwroot/.\n\n2. **Verify UseStaticFiles() middleware**:\n   - eShopLegacyMVC Program.cs: already has app.UseStaticFiles() ✓\n   - eShopPorted Startup.cs: already has app.UseStaticFiles() ✓\n   - eShopLegacyWebForms Program.cs: already has app.UseStaticFiles() ✓\n\n3. **Verify PicController paths**: eShopLegacyMVC PicController uses WebRootPath + PictureFileName. Ensure PictureFileName values (e.g., '1.png') when combined with wwwroot path resolve correctly to wwwroot/Pics/ files. Note: The PicController combines WebRootPath with PictureFileName directly, but PictureFileName is just '1.png' not 'Pics/1.png'. Verify and fix if needed so that Path.Combine(webRoot, item.PictureFileName) resolves to the correct path (may need 'Pics/' prefix in the path).\n\n4. **Build all solutions** and verify no errors.\n\n5. **Verify image references** are consistent across all Razor views and Blazor components.",
+      "target_components": [
+        "eShopLegacyMVCSolution/src/eShopLegacyMVC/Controllers/PicController.cs (verify path construction)",
+        "eShopLegacyMVCSolution/src/eShopLegacyMVC/Program.cs (verify UseStaticFiles)",
+        "eShopLegacyMVCSolution/eShopPorted/Startup.cs (verify UseStaticFiles)",
+        "eShopLegacyWebFormsSolution/src/eShopLegacyWebForms/Program.cs (verify UseStaticFiles)",
+        "All wwwroot/ directories across three projects"
+      ],
+      "verification": "dotnet build eShopLegacyMVCSolution/eShopLegacyMVC.sln > build.log 2>&1 && dotnet build eShopLegacyWebFormsSolution/eShopLegacyWebForms.sln >> build.log 2>&1 && dotnet build eShopLegacyNTier/eShopLegacyNTier.sln >> build.log 2>&1 > build.log 2>&1"
+    }
+  ]
+}

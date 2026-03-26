@@ -167,7 +167,7 @@ namespace eShopLegacyMVC.Controllers
 
         private void AddUriPlaceHolder(CatalogItem item)
         {
-
+            item.PictureUri = $"/Pics/{item.Id}.png";
         }
     }
 }
