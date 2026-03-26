@@ -343,7 +343,7 @@ namespace eShopLegacyMVC.Models.Infrastructure
                 return;
             }
             var contentRootPath = HostingEnvironment.ApplicationPhysicalPath;
-            DirectoryInfo picturePath = new DirectoryInfo(Path.Combine(contentRootPath, "Pics"));
+            DirectoryInfo picturePath = new DirectoryInfo(Path.Combine(contentRootPath, "wwwroot", "Pics"));
             foreach (FileInfo file in picturePath.GetFiles())
             {
                 file.Delete();
