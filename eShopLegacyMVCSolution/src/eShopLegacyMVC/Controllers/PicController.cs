@@ -42,7 +42,7 @@ namespace eShopLegacyMVC.Controllers
             if (item != null)
             {
                 var webRoot = _webHostEnvironment.WebRootPath;
-                var path = Path.Combine(webRoot, item.PictureFileName);
+                var path = Path.Combine(webRoot, "Pics", item.PictureFileName);
 
                 string imageFileExtension = Path.GetExtension(item.PictureFileName);
                 string mimetype = GetImageMimeTypeFromImageFileExtension(imageFileExtension);
